@@ -12,12 +12,14 @@ Example:
 ```python
 import MSAgen
 
-sequences = MSAgen.generate_sequences(num_sequences = 10, # the number of sequences to generate 
-                                      seqlen = 10000, # length of each sequence (in bp)
-                                      genelen = 2000, # length of the gene in each sequence (in bp, can be 0)
-                                      coding_dist = 0.2, # branch length of the underlying tree for simulated gene evolution
-                                      noncoding_dist = 0.4) # branch length for flanking regions
+sequences, posDict = MSAgen.generate_sequences(num_sequences = 10, # the number of sequences to generate 
+                                               seqlen = 10000, # length of each sequence (in bp)
+                                               genelen = 2000, # length of the gene in each sequence (in bp, can be 0)
+                                               coding_dist = 0.2, # branch length of the underlying tree for simulated gene evolution
+                                               noncoding_dist = 0.4) # branch length for flanking regions
 ```
+
+`sequences` is a list of `Bio.SeqRecord`s holding the generated sequences, `posDict` is a dict containing 0-based indices of the sequence elements (gene start, stop codon, ...)
 
 ### Limitations
 
