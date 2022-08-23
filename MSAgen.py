@@ -107,13 +107,18 @@ def concatenate_sequences(sequences, new_parts):
 # -------------
 
 def generate_sequences(num_sequences:int, seqlen:int, genelen: int,
-                       coding_dist = 0.2, noncoding_dist = 0.4):
+                       coding_dist:float = 0.05, noncoding_dist:float = 0.1,
+                       omega:float = 0.4, tree:str = "caterpillar"):
     '''
     Simulates evolution of `num_sequences` sequences that share a common ancestor
         Parameters:
             num_sequences (int): number of sequences to generate
             seqlen (int): total lenght of each generated sequence
             genelen (int): length of the simulated ortholog gene inside the sequences, rounded up to a multiple of 3
+            coding_dist (float): height of the underlying tree for coding sequences
+            noncoding_dist (float): height of the underlying tree for non-coding sequences
+            omega (float): codon regions under negative selection
+            tree (str): type of tree, either "star" or "caterpillar"
         Returns:
             sequences (list(Bio.SeqRecord.SeqRecord)): list of generated sequences as Biopython SeqRecords
             posDict (dict): dict containing positions of the sequence elements
@@ -125,11 +130,20 @@ def generate_sequences(num_sequences:int, seqlen:int, genelen: int,
     if genelen > 0:
         assert seqlen >= 6+genelen, "seqlen must be at least 6+genelen (genelen was adjusted to "+str(genelen)+")"
 
+    assert tree in ['star', 'caterpillar'], "[ERROR] >>> tree can only be 'caterpillar' or 'star'"
+
     # generate 3 copies of the same tree with different scales
     # This is  because pyvolve cannot use the mutation rate as part of the model.
-    tree_noncoding = caterpillar_tree(num_sequences, noncoding_dist)
-    tree_coding = caterpillar_tree(num_sequences, coding_dist)
-    tree_signal = caterpillar_tree(num_sequences, 0) # no mutations of start and stop codon
+    if tree == 'caterpillar':
+        tree_noncoding = caterpillar_tree(num_sequences, noncoding_dist)
+        tree_coding = caterpillar_tree(num_sequences, coding_dist)
+        tree_signal = caterpillar_tree(num_sequences, 0) # no mutations of start and stop codon
+    elif tree == 'star':
+        tree_noncoding = star_tree(num_sequences, noncoding_dist)
+        tree_coding = star_tree(num_sequences, coding_dist)
+        tree_signal = star_tree(num_sequences, 0) # no mutations of start and stop codon
+    else:
+        assert False, "[ERROR] >>> tree can only be 'caterpillar' or 'star'"
 
     # stationary distribution of codons
     pi_codon = [1/61.] * 61
@@ -147,7 +161,7 @@ def generate_sequences(num_sequences:int, seqlen:int, genelen: int,
     # Codon models require you to specify a second argument to pyvolve.Model, a dictionary of parameters. You must 
     #   specify dN/dS using either "omega" (for the full ratio), or "beta" for dN and "alpha" for dS, as shown below. 
     #   Either dictionary would be acceptable.
-    parameters = {"omega": 0.4, # codon regions under negative selection
+    parameters = {"omega": omega, # codon regions under negative selection
                   "state_freqs" : pi_codon, # equilibrium distribution
                   "kappa" : kappa} # transition/transversion rate ratio
     codon_model = pyvolve.Model("GY", parameters)
