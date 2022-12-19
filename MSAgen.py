@@ -1,3 +1,4 @@
+import json
 import math
 import os
 import random
@@ -102,9 +103,9 @@ def concatenate_sequences(sequences, new_parts):
 
 
 
-# -------------
-# main function
-# -------------
+# --------------
+# main functions
+# --------------
 
 def generate_sequences(num_sequences:int, seqlen:int, genelen: int,
                        coding_dist:float = 0.05, noncoding_dist:float = 0.1,
@@ -220,4 +221,60 @@ def generate_sequences(num_sequences:int, seqlen:int, genelen: int,
 
     
     return sequences, posDict
-    
+
+
+
+def store_sequences(sequences, posDict, path):
+    '''
+    Stores the output of generate_sequences() as fasta and json files
+        Parameters:
+            sequences (list(Bio.SeqRecord.SeqRecord)): list of generated sequences as Biopython SeqRecords
+            posDict (dict): dict containing positions of the sequence elements
+            path (str): path to a directory, then filenames are simulated_sequences[.posdict](.fasta|.json) or path to
+                        a fasta file for the sequences, then the json file will get the suffix .posdict.json
+        Returns:
+            spath (str): path where the sequences have been stored
+            dpath (str): path where the posDict has been stored
+    '''
+
+    if os.path.isdir(path):
+        spath = os.path.join(path, "simulated_sequences.fasta")
+        dpath = os.path.join(path, "simulated_sequences.posdict.json")
+    else:
+        spath = path
+        b, _ = os.path.splitext(path)
+        dpath = b+".posdict.json"
+
+    with open(spath, "w") as output_handle:
+        SeqIO.write(sequences, output_handle, "fasta")
+
+    with open(dpath, "wt") as fh:
+        json.dump(posDict, fh)
+
+    return spath, dpath
+
+
+
+def load_sequences(spath, dpath):
+    '''
+    Loads sequences from a fasta file and the posDict from a json file
+        Parameters:
+            spath (str): path where the sequences have been stored
+            dpath (str): path where the posDict has been stored
+
+        Returns:
+            sequences (list(Bio.SeqRecord.SeqRecord)): list of generated sequences as Biopython SeqRecords
+            posDict (dict): dict containing positions of the sequence elements
+    '''
+
+    assert os.path.isfile(spath), "'"+str(spath)+"' not found"
+    assert os.path.isfile(dpath), "'"+str(dpath)+"' not found"
+
+    sequences = []
+    for seq in SeqIO.parse(spath, 'fasta'):
+        sequences.append(seq)
+
+    with open(dpath, "rt") as fh:
+        posDict = json.load(fh)
+
+    return sequences, posDict
